@@ -3,347 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#0f0f1a">
 <title>MarketAI - 오늘의 할인</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   :root {
-    --lotte: #e31837;
-    --coupang: #ff6000;
-    --ssg: #c00;
-    --kurly: #5f0080;
-    --bg: #0f0f1a;
-    --surface: #1c1c2e;
-    --card: #252538;
-    --text: #f0f0f0;
-    --muted: #888;
-    --radius: 14px;
+    --lotte: #e31837; --coupang: #ff6000; --ssg: #cc0000; --kurly: #5f0080;
+    --emart: #e4b200; --traders: #0065BD; --costco: #005DAA; --homeplus: #0066CC;
+    --everyday: #FF6B35; --lotteon: #E40028; --toss: #0064FF; --eleven: #FF0033; --naver: #03C75A;
+    --bg: #0f0f1a; --surface: #1c1c2e; --card: #252538; --text: #f0f0f0; --muted: #888; --radius: 14px;
   }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    padding-bottom: 24px;
-  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; padding-bottom: 30px; }
 
-  /* Header */
-  .header {
-    background: var(--surface);
-    padding: 16px 20px 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    border-bottom: 1px solid #2a2a40;
-  }
+  .header { background: var(--surface); padding: 14px 18px 10px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #2a2a40; }
+  .header h1 { font-size: 19px; font-weight: 800; background: linear-gradient(90deg,#a78bfa,#60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header p { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-  .header h1 {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(90deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .header p {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    background: var(--surface);
-    position: sticky;
-    top: 60px;
-    z-index: 99;
-    border-bottom: 1px solid #2a2a40;
-  }
+  /* Category Groups */
+  .tab-group { background: var(--surface); border-bottom: 1px solid #2a2a40; position: sticky; top: 52px; z-index: 99; }
+  .tab-label { font-size: 9px; color: #555; font-weight: 700; padding: 6px 16px 2px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .tabs { display: flex; gap: 6px; padding: 4px 12px 8px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
 
-  .tab {
-    flex-shrink: 0;
-    padding: 7px 16px;
-    border-radius: 20px;
-    border: 1.5px solid #333;
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
+  .tab { flex-shrink: 0; padding: 6px 13px; border-radius: 18px; border: 1.5px solid #333; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
   .tab.active { color: #fff; border-color: transparent; }
-  .tab[data-platform="all"].active  { background: linear-gradient(135deg, #a78bfa, #60a5fa); }
-  .tab[data-platform="lotte"].active  { background: var(--lotte); }
-  .tab[data-platform="coupang"].active { background: var(--coupang); }
-  .tab[data-platform="ssg"].active    { background: var(--ssg); }
-  .tab[data-platform="kurly"].active  { background: var(--kurly); }
+
+  .tab[data-p="all"].active    { background: linear-gradient(135deg,#a78bfa,#60a5fa); }
+  .tab[data-p="lotte"].active  { background: var(--lotte); }
+  .tab[data-p="coupang"].active{ background: var(--coupang); }
+  .tab[data-p="ssg"].active    { background: var(--ssg); }
+  .tab[data-p="kurly"].active  { background: var(--kurly); }
+  .tab[data-p="emart"].active  { background: var(--emart); color: #111; }
+  .tab[data-p="traders"].active{ background: var(--traders); }
+  .tab[data-p="costco"].active { background: var(--costco); }
+  .tab[data-p="homeplus"].active{ background: var(--homeplus); }
+  .tab[data-p="everyday"].active{ background: var(--everyday); }
+  .tab[data-p="lotteon"].active{ background: var(--lotteon); }
+  .tab[data-p="toss"].active   { background: var(--toss); }
+  .tab[data-p="eleven"].active { background: var(--eleven); }
+  .tab[data-p="naver"].active  { background: var(--naver); }
 
   /* Grid */
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 14px 12px;
-    max-width: 640px;
-    margin: 0 auto;
-  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 10px; max-width: 640px; margin: 0 auto; }
 
   /* Card */
-  .card {
-    background: var(--card);
-    border-radius: var(--radius);
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.15s;
-    position: relative;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-  }
-  .card:active { transform: scale(0.97); }
+  .card { background: var(--card); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform 0.15s; position: relative; text-decoration: none; color: inherit; display: block; }
+  .card:active { transform: scale(0.96); }
 
-  .card-image {
-    width: 100%;
-    aspect-ratio: 1;
-    background: #1a1a30;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 42px;
-    position: relative;
-  }
-  .card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+  .card-image { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 38px; position: relative; }
+  .card-image img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
 
-  .discount-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: #e74c3c;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 3px 7px;
-    border-radius: 6px;
-  }
+  .discount-badge { position: absolute; top: 7px; left: 7px; background: #e74c3c; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; z-index: 1; }
+  .extra-badge { position: absolute; top: 7px; right: 7px; background: rgba(0,0,0,0.65); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 5px; backdrop-filter: blur(4px); z-index: 1; }
 
-  .extra-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(0,0,0,0.7);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 6px;
-    backdrop-filter: blur(4px);
-  }
+  .card-body { padding: 8px 9px 10px; }
+  .platform-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; }
 
-  .card-body {
-    padding: 10px 10px 12px;
-  }
+  .tag-lotte    { background:rgba(227,24,55,.2);   color:#ff6b80; }
+  .tag-coupang  { background:rgba(255,96,0,.2);    color:#ff9955; }
+  .tag-ssg      { background:rgba(204,0,0,.2);     color:#ff5555; }
+  .tag-kurly    { background:rgba(95,0,128,.25);   color:#c77dff; }
+  .tag-emart    { background:rgba(228,178,0,.2);   color:#f5c842; }
+  .tag-traders  { background:rgba(0,101,189,.25);  color:#66b2ff; }
+  .tag-costco   { background:rgba(0,93,170,.25);   color:#55aaff; }
+  .tag-homeplus { background:rgba(0,102,204,.25);  color:#66bbff; }
+  .tag-everyday { background:rgba(255,107,53,.2);  color:#ff9977; }
+  .tag-lotteon  { background:rgba(228,0,40,.2);    color:#ff6677; }
+  .tag-toss     { background:rgba(0,100,255,.2);   color:#6699ff; }
+  .tag-eleven   { background:rgba(255,0,51,.2);    color:#ff6688; }
+  .tag-naver    { background:rgba(3,199,90,.2);    color:#33dd88; }
 
-  .platform-tag {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 4px;
-    margin-bottom: 5px;
-  }
-  .tag-lotte   { background: rgba(227,24,55,0.2);  color: #ff6b80; }
-  .tag-coupang { background: rgba(255,96,0,0.2);   color: #ff9955; }
-  .tag-ssg     { background: rgba(204,0,0,0.2);    color: #ff5555; }
-  .tag-kurly   { background: rgba(95,0,128,0.25);  color: #c77dff; }
+  .card-title { font-size: 11px; font-weight: 500; line-height: 1.4; color: #ddd; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 7px; }
 
-  .card-title {
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.4;
-    color: #ddd;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
+  .price-row { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+  .price-sale { font-size: 14px; font-weight: 800; color: #fff; }
+  .price-orig { font-size: 10px; color: var(--muted); text-decoration: line-through; }
 
-  .price-row {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-  .price-sale {
-    font-size: 15px;
-    font-weight: 800;
-    color: #fff;
-  }
-  .price-original {
-    font-size: 11px;
-    color: var(--muted);
-    text-decoration: line-through;
-  }
-
-  /* Loading */
-  .loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .spinner {
-    width: 32px; height: 32px;
-    border: 3px solid #333;
-    border-top-color: #a78bfa;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+  .loader { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; color: var(--muted); font-size: 13px; }
+  .spinner { width: 30px; height: 30px; border: 3px solid #333; border-top-color: #a78bfa; border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .error-box {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  /* Emoji fallback map */
-  .emoji-lotte   { background: linear-gradient(135deg, #e31837, #ff6b6b); }
-  .emoji-coupang { background: linear-gradient(135deg, #ff6000, #ff9955); }
-  .emoji-ssg     { background: linear-gradient(135deg, #cc0000, #ff4444); }
-  .emoji-kurly   { background: linear-gradient(135deg, #5f0080, #9b59b6); }
+  /* Colored bg per platform */
+  .bg-lotte    { background: linear-gradient(135deg,#e31837,#ff6b6b); }
+  .bg-coupang  { background: linear-gradient(135deg,#ff6000,#ff9955); }
+  .bg-ssg      { background: linear-gradient(135deg,#cc0000,#ff4444); }
+  .bg-kurly    { background: linear-gradient(135deg,#5f0080,#9b59b6); }
+  .bg-emart    { background: linear-gradient(135deg,#c89b00,#f5c842); }
+  .bg-traders  { background: linear-gradient(135deg,#003d7a,#0065BD); }
+  .bg-costco   { background: linear-gradient(135deg,#003366,#005DAA); }
+  .bg-homeplus { background: linear-gradient(135deg,#003d7a,#0066CC); }
+  .bg-everyday { background: linear-gradient(135deg,#cc4400,#FF6B35); }
+  .bg-lotteon  { background: linear-gradient(135deg,#8b0000,#E40028); }
+  .bg-toss     { background: linear-gradient(135deg,#003aaa,#0064FF); }
+  .bg-eleven   { background: linear-gradient(135deg,#990022,#FF0033); }
+  .bg-naver    { background: linear-gradient(135deg,#008844,#03C75A); }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>MarketAI</h1>
-  <p id="subtitle">할인 정보를 불러오는 중...</p>
+  <p id="subtitle">할인 정보 불러오는 중...</p>
 </div>
 
-<div class="tabs">
-  <button class="tab active" data-platform="all">전체</button>
-  <button class="tab" data-platform="lotte">롯데마트</button>
-  <button class="tab" data-platform="coupang">쿠팡</button>
-  <button class="tab" data-platform="ssg">SSG</button>
-  <button class="tab" data-platform="kurly">컬리</button>
-</div>
-
-<div id="content">
-  <div class="loader">
-    <div class="spinner"></div>
-    <span>할인 정보 수집 중...</span>
+<div class="tab-group">
+  <div class="tabs">
+    <button class="tab active" data-p="all">전체</button>
+    <button class="tab" data-p="lotte">롯데마트</button>
+    <button class="tab" data-p="emart">이마트</button>
+    <button class="tab" data-p="traders">트레이더스</button>
+    <button class="tab" data-p="costco">코스트코</button>
+    <button class="tab" data-p="homeplus">홈플러스</button>
+    <button class="tab" data-p="everyday">이마트에브리데이</button>
+    <button class="tab" data-p="lotteon">롯데ON</button>
+    <button class="tab" data-p="coupang">쿠팡</button>
+    <button class="tab" data-p="ssg">SSG</button>
+    <button class="tab" data-p="kurly">컬리</button>
+    <button class="tab" data-p="eleven">11번가</button>
+    <button class="tab" data-p="toss">토스쇼핑</button>
+    <button class="tab" data-p="naver">네이버쇼핑</button>
   </div>
 </div>
 
+<div id="content">
+  <div class="loader"><div class="spinner"></div><span>할인 정보 수집 중...</span></div>
+</div>
+
 <script>
-  const EMOJIS = {
-    lotte: '🛒', coupang: '📦', ssg: '🛍', kurly: '🥦',
-    과일: '🍊', 육류: '🥩', 냉동식품: '🧊', 음료: '🥤',
-    전자기기: '📱', 뷰티: '💄', 생활용품: '🧴', 패션: '👟',
-    건강: '💊', 식품: '🍜', 주류: '🍺', 선물세트: '🎁',
-    두부: '🫘', 베이커리: '🥐', 주방용품: '☕', 식재료: '🌾',
-  };
+const EMOJI = {
+  과일:'🍊', 육류:'🥩', 냉동식품:'🧊', 음료:'🥤', 전자기기:'📱', 뷰티:'💄',
+  생활용품:'🧴', 패션:'👟', 건강:'💊', 식품:'🍜', 주류:'🍺', 선물세트:'🎁',
+  견과류:'🥜', 수산물:'🐟', 즉석식품:'🍗', 가전:'🏠', 건강식품:'💊',
+  라면:'🍜', 유제품:'🥛', 스낵:'🍿', 통조림:'🥫', 김치:'🥬', 샐러드:'🥗',
+  간편식:'🍱', 유아:'👶', 기프티콘:'🎟', 컴퓨터:'💻', 가구:'🪑',
+  여행:'🏨', 과자:'🍪',
+  lotte:'🛒', coupang:'📦', ssg:'🛍', kurly:'🥦',
+  emart:'🏪', traders:'🏬', costco:'🏭', homeplus:'🏪',
+  everyday:'🏪', lotteon:'🛒', toss:'💙', eleven:'1️⃣', naver:'🟢',
+};
 
-  function getEmoji(item) {
-    for (const [k, v] of Object.entries(EMOJIS)) {
-      if (item.category && item.category.includes(k)) return v;
-    }
-    return EMOJIS[item.platform] || '🏪';
+function emoji(item) {
+  for (const [k, v] of Object.entries(EMOJI)) {
+    if (item.category && item.category.includes(k)) return v;
   }
+  return EMOJI[item.platform] || '🏪';
+}
 
-  function formatPrice(p) {
-    if (!p) return '';
-    return p.toLocaleString('ko-KR') + '원';
+function fmt(p) { return p ? p.toLocaleString('ko-KR') + '원' : ''; }
+
+function card(item) {
+  const disc = item.discount_rate ? `<div class="discount-badge">${item.discount_rate}%↓</div>` : '';
+  const badge = item.badge ? `<div class="extra-badge">${item.badge}</div>` : '';
+  const img = item.image_url ? `<img src="${item.image_url}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  const price = item.sale_price
+    ? `<div class="price-row"><span class="price-sale">${fmt(item.sale_price)}</span>${item.original_price ? `<span class="price-orig">${fmt(item.original_price)}</span>` : ''}</div>` : '';
+  return `<a class="card" href="${item.url}" target="_blank" rel="noopener">
+    <div class="card-image bg-${item.platform}">${img}<span>${emoji(item)}</span>${disc}${badge}</div>
+    <div class="card-body">
+      <div class="platform-tag tag-${item.platform}">${item.platform_name}</div>
+      <div class="card-title">${item.title}</div>
+      ${price}
+    </div></a>`;
+}
+
+async function load(platform = 'all') {
+  document.getElementById('content').innerHTML = '<div class="loader"><div class="spinner"></div><span>불러오는 중...</span></div>';
+  try {
+    const res = await fetch(`/api/promotions?platform=${platform}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    document.getElementById('subtitle').textContent = `총 ${data.total}개 할인 상품`;
+    document.getElementById('content').innerHTML = data.items.length
+      ? `<div class="grid">${data.items.map(card).join('')}</div>`
+      : '<div style="text-align:center;padding:40px;color:#888">상품 없음</div>';
+  } catch {
+    document.getElementById('content').innerHTML = '<div style="text-align:center;padding:40px;color:#888">데이터를 불러올 수 없습니다</div>';
   }
+}
 
-  function renderCard(item) {
-    const hasImage = item.image_url;
-    const imgHtml = hasImage
-      ? `<img src="${item.image_url}" alt="${item.title}" loading="lazy" onerror="this.style.display='none'">`
-      : '';
-    const discountHtml = item.discount_rate
-      ? `<div class="discount-badge">${item.discount_rate}%↓</div>` : '';
-    const badgeHtml = item.badge
-      ? `<div class="extra-badge">${item.badge}</div>` : '';
-    const priceHtml = item.sale_price
-      ? `<div class="price-row">
-          <span class="price-sale">${formatPrice(item.sale_price)}</span>
-          ${item.original_price ? `<span class="price-original">${formatPrice(item.original_price)}</span>` : ''}
-         </div>` : '';
-
-    return `
-      <a class="card" href="${item.url}" target="_blank" rel="noopener">
-        <div class="card-image emoji-${item.platform}">
-          ${imgHtml}
-          <span style="${hasImage ? 'display:none' : ''}">${getEmoji(item)}</span>
-          ${discountHtml}
-          ${badgeHtml}
-        </div>
-        <div class="card-body">
-          <div class="platform-tag tag-${item.platform}">${item.platform_name}</div>
-          <div class="card-title">${item.title}</div>
-          ${priceHtml}
-        </div>
-      </a>`;
-  }
-
-  function renderGrid(items) {
-    if (!items.length) {
-      return '<div class="error-box">표시할 상품이 없습니다.</div>';
-    }
-    return `<div class="grid">${items.map(renderCard).join('')}</div>`;
-  }
-
-  let allItems = [];
-
-  async function loadPromotions(platform = 'all') {
-    document.getElementById('content').innerHTML =
-      '<div class="loader"><div class="spinner"></div><span>불러오는 중...</span></div>';
-
-    try {
-      const res = await fetch(`/api/promotions?platform=${platform}`);
-      if (!res.ok) throw new Error('서버 오류');
-      const data = await res.json();
-      allItems = data.items;
-      document.getElementById('subtitle').textContent =
-        `총 ${data.total}개 할인 상품`;
-      document.getElementById('content').innerHTML = renderGrid(allItems);
-    } catch (e) {
-      document.getElementById('content').innerHTML =
-        '<div class="error-box">데이터를 불러올 수 없습니다.<br>잠시 후 다시 시도해 주세요.</div>';
-      document.getElementById('subtitle').textContent = '오류 발생';
-    }
-  }
-
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      loadPromotions(tab.dataset.platform);
-    });
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    load(t.dataset.p);
   });
+});
 
-  loadPromotions('all');
+load('all');
 </script>
 </body>
 </html>

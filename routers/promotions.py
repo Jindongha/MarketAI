@@ -4,11 +4,28 @@ from fastapi import APIRouter, Query
 from typing import Optional
 from models import PromotionsResponse
 from scrapers import kurly, lotte, coupang, ssg
+from scrapers import emart, traders, costco, homeplus, emart_everyday, lotteon, toss, eleven, naver
 
 router = APIRouter(prefix="/api/promotions", tags=["promotions"])
 
 _cache: dict = {}
-CACHE_TTL = 1800  # 30분
+CACHE_TTL = 1800
+
+PLATFORM_MAP = {
+    "kurly": kurly.fetch,
+    "lotte": lotte.fetch,
+    "coupang": coupang.fetch,
+    "ssg": ssg.fetch,
+    "emart": emart.fetch,
+    "traders": traders.fetch,
+    "costco": costco.fetch,
+    "homeplus": homeplus.fetch,
+    "everyday": emart_everyday.fetch,
+    "lotteon": lotteon.fetch,
+    "toss": toss.fetch,
+    "eleven": eleven.fetch,
+    "naver": naver.fetch,
+}
 
 
 def _get_cache(key: str):
@@ -29,21 +46,10 @@ async def get_promotions(platform: Optional[str] = Query(default="all")):
     if cached:
         return cached
 
-    if platform == "kurly":
-        items = await kurly.fetch()
-    elif platform == "lotte":
-        items = await lotte.fetch()
-    elif platform == "coupang":
-        items = await coupang.fetch()
-    elif platform == "ssg":
-        items = await ssg.fetch()
+    if platform in PLATFORM_MAP:
+        items = await PLATFORM_MAP[platform]()
     else:
-        results = await asyncio.gather(
-            kurly.fetch(),
-            lotte.fetch(),
-            coupang.fetch(),
-            ssg.fetch(),
-        )
+        results = await asyncio.gather(*[fn() for fn in PLATFORM_MAP.values()])
         items = [item for group in results for item in group]
 
     response = PromotionsResponse(items=items, total=len(items))
