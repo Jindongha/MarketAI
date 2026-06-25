@@ -13,14 +13,14 @@ SAMPLE: List[Promotion] = [
 
 async def fetch() -> List[Promotion]:
     if naver_api.is_available():
-        items = await naver_api.search("이마트 신선식품 할인 특가", display=20)
-        result = []
-        for i, it in enumerate(items):
-            mall = it.get("mallName","")
-            if "이마트" in mall and "에브리데이" not in mall and "트레이더스" not in mall:
+        queries = ["채소 과일 신선 야채 특가", "이마트 식품 대용량 할인"]
+        for q in queries:
+            items = await naver_api.search(q, display=20)
+            result = []
+            for i, it in enumerate(items):
                 p = naver_api.to_promotion(it, i, "emart", "이마트")
                 if p:
                     result.append(p)
-        if len(result) >= 3:
-            return result[:5]
+            if len(result) >= 3:
+                return result[:5]
     return SAMPLE

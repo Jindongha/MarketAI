@@ -16,44 +16,15 @@ SAMPLE: List[Promotion] = [
 HEADERS = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15", "Accept": "application/json"}
 
 async def fetch() -> List[Promotion]:
-    # 1. Naver API
     if naver_api.is_available():
-        queries = ["마켓컬리 신선 할인", "컬리 식품 특가"]
+        queries = ["유기농 신선 과일 채소 할인", "냉장 신선식품 특가 할인"]
         for q in queries:
             items = await naver_api.search(q, display=20)
             result = []
             for i, it in enumerate(items):
-                if any(k in it.get("mallName","") for k in ["마켓컬리","컬리"]):
-                    p = naver_api.to_promotion(it, i, "kurly", "컬리")
-                    if p:
-                        result.append(p)
+                p = naver_api.to_promotion(it, i, "kurly", "컬리")
+                if p:
+                    result.append(p)
             if len(result) >= 4:
                 return result[:6]
-
-    # 2. Direct API
-    try:
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as c:
-            r = await c.get("https://api.kurly.com/v1/recommendation/products?sort_type=4&per_page=10", headers=HEADERS)
-            if r.status_code == 200:
-                data = r.json()
-                items = data.get("data", {}).get("products", [])
-                if items:
-                    result = []
-                    for i, p in enumerate(items[:6]):
-                        orig = p.get("sales_price", 0)
-                        sale = p.get("discounted_price", orig)
-                        rate = int((orig - sale) / orig * 100) if orig > sale else 0
-                        title = p.get("goods_name", "")
-                        result.append(Promotion(
-                            id=f"kurly_r_{i}", platform="kurly", platform_name="컬리",
-                            title=title, image_url=p.get("goods_image") or get_image(title,""),
-                            original_price=orig, sale_price=sale, discount_rate=rate,
-                            url=f"https://www.kurly.com/goods/{p.get('goods_no','')}",
-                            category=p.get("category_name"),
-                        ))
-                    if result:
-                        return result
-    except Exception:
-        pass
-
     return SAMPLE

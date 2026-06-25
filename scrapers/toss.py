@@ -1,6 +1,7 @@
 from typing import List
 from models import Promotion
 from scrapers.images import get_image
+from scrapers import naver_api
 
 SAMPLE: List[Promotion] = [
     Promotion(id="toss_1", platform="toss", platform_name="토스쇼핑", title="스타벅스 아메리카노 Tall 10잔 기프티콘", original_price=54500, sale_price=38150, discount_rate=30, url="https://toss.im/shopping", category="커피", badge="토스단독", image_url=get_image("커피","")),
@@ -11,4 +12,15 @@ SAMPLE: List[Promotion] = [
 ]
 
 async def fetch() -> List[Promotion]:
+    if naver_api.is_available():
+        queries = ["스타벅스 커피 기프티콘 할인", "배달 음식 편의점 상품권 특가"]
+        for q in queries:
+            items = await naver_api.search(q, display=20)
+            result = []
+            for i, it in enumerate(items):
+                p = naver_api.to_promotion(it, i, "toss", "토스쇼핑")
+                if p:
+                    result.append(p)
+            if len(result) >= 3:
+                return result[:5]
     return SAMPLE

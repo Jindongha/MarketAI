@@ -1,6 +1,7 @@
 from typing import List
 from models import Promotion
 from scrapers.images import get_image
+from scrapers import naver_api
 
 SAMPLE: List[Promotion] = [
     Promotion(id="everyday_1", platform="everyday", platform_name="이마트에브리데이", title="풀무원 순두부찌개 밀키트 2인분", original_price=4500, sale_price=3150, discount_rate=30, url="https://eeveryday.ssg.com/search.ssg?query=순두부찌개", category="간편식", badge="근거리", image_url=get_image("간편식","")),
@@ -11,4 +12,15 @@ SAMPLE: List[Promotion] = [
 ]
 
 async def fetch() -> List[Promotion]:
+    if naver_api.is_available():
+        queries = ["편의점 간편식 샐러드 할인", "근거리 마트 신선 도시락 특가"]
+        for q in queries:
+            items = await naver_api.search(q, display=20)
+            result = []
+            for i, it in enumerate(items):
+                p = naver_api.to_promotion(it, i, "everyday", "이마트에브리데이")
+                if p:
+                    result.append(p)
+            if len(result) >= 3:
+                return result[:5]
     return SAMPLE
