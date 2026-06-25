@@ -56,13 +56,21 @@ async def search(query: str, display: int = 20) -> List[dict]:
 def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, force_name: Optional[str] = None) -> Optional[Promotion]:
     title = clean_title(item.get("title", ""))
     image = item.get("image", "")
-    link = item.get("link", "")
     lprice = int(item.get("lprice", 0) or 0)
     hprice = int(item.get("hprice", 0) or 0) or lprice
     mall = item.get("mallName", "")
     category = item.get("category4") or item.get("category3") or item.get("category2") or ""
+    product_id = item.get("productId", "")
 
-    if not title or not link:
+    if not title:
+        return None
+
+    # Naver catalog URL is always accessible (no login, no app required)
+    if product_id:
+        link = f"https://search.shopping.naver.com/catalog/{product_id}"
+    else:
+        link = item.get("link", "")
+    if not link:
         return None
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
