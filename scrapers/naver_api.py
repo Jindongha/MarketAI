@@ -69,9 +69,13 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
     if product_id:
         link = f"https://search.shopping.naver.com/catalog/{product_id}"
     else:
-        link = item.get("link", "")
-    if not link:
-        return None
+        seller_link = item.get("link", "")
+        if seller_link and seller_link.startswith("http"):
+            link = seller_link
+        else:
+            # fallback: Naver Shopping search by title
+            import urllib.parse
+            link = f"https://search.shopping.naver.com/search/all?query={urllib.parse.quote(title)}"
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0

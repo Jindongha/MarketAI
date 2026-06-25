@@ -50,7 +50,13 @@ async def get_promotions(platform: Optional[str] = Query(default="all")):
         items = await PLATFORM_MAP[platform]()
     else:
         results = await asyncio.gather(*[fn() for fn in PLATFORM_MAP.values()])
-        items = [item for group in results for item in group]
+        seen_titles: set = set()
+        items = []
+        for group in results:
+            for item in group:
+                if item.title not in seen_titles:
+                    seen_titles.add(item.title)
+                    items.append(item)
 
     response = PromotionsResponse(items=items, total=len(items))
     _set_cache(platform, response)
