@@ -11,21 +11,32 @@ SAMPLE: List[Promotion] = [
     Promotion(id="naver_5", platform="naver", platform_name="네이버쇼핑", title="전라도 반찬 모음 10종 세트", original_price=35000, sale_price=24500, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=전라도반찬세트", category="간편식", badge="BEST", image_url=get_image("김치","")),
 ]
 
+QUERIES = [
+    "과일 사과 배 신선 특가",
+    "채소 양파 감자 당근 할인",
+    "육류 돼지고기 삼겹살 닭고기 특가",
+    "수산물 생선 조개 새우 할인",
+    "라면 즉석밥 즉석식품 특가",
+    "유제품 우유 요거트 치즈 할인",
+    "견과류 아몬드 호두 특가",
+    "김치 반찬 장아찌 특가",
+]
+
 async def fetch() -> List[Promotion]:
     if naver_api.is_available():
-        queries = ["신선식품 할인 특가", "과일 채소 할인"]
         all_items = []
-        for q in queries:
+        for q in QUERIES:
             items = await naver_api.search(q, display=10)
             all_items.extend(items)
         result = []
         seen = set()
         for i, it in enumerate(all_items):
-            title = it.get("title","")
+            title = it.get("title", "")
             if title not in seen:
                 seen.add(title)
                 p = naver_api.to_promotion(it, i)
-                if p: result.append(p)
-        if len(result) >= 3:
-            return result[:5]
+                if p:
+                    result.append(p)
+        if len(result) >= 5:
+            return result[:20]
     return SAMPLE

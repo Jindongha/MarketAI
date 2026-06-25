@@ -17,14 +17,24 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)
 
 async def fetch() -> List[Promotion]:
     if naver_api.is_available():
-        queries = ["유기농 신선 과일 채소 할인", "냉장 신선식품 특가 할인"]
+        queries = [
+            "유기농 신선 과일 채소 할인",
+            "냉장 신선식품 간편식 특가",
+            "샐러드 두부 나물 신선 할인",
+        ]
+        all_items = []
         for q in queries:
-            items = await naver_api.search(q, display=20)
-            result = []
-            for i, it in enumerate(items):
+            items = await naver_api.search(q, display=15)
+            all_items.extend(items)
+        result = []
+        seen = set()
+        for i, it in enumerate(all_items):
+            title = it.get("title", "")
+            if title not in seen:
+                seen.add(title)
                 p = naver_api.to_promotion(it, i, "kurly", "컬리")
                 if p:
                     result.append(p)
-            if len(result) >= 4:
-                return result[:6]
+        if len(result) >= 4:
+            return result[:12]
     return SAMPLE

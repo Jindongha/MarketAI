@@ -13,14 +13,24 @@ SAMPLE: List[Promotion] = [
 
 async def fetch() -> List[Promotion]:
     if naver_api.is_available():
-        queries = ["롯데 과자 초콜릿 사탕 음료 할인", "빼빼로 초코파이 사이다 칠성 특가"]
+        queries = [
+            "롯데 과자 초콜릿 사탕 음료 할인",
+            "빼빼로 초코파이 사이다 칠성 특가",
+            "스낵 과자 세트 선물 할인",
+        ]
+        all_items = []
         for q in queries:
-            items = await naver_api.search(q, display=20)
-            result = []
-            for i, it in enumerate(items):
+            items = await naver_api.search(q, display=15)
+            all_items.extend(items)
+        result = []
+        seen = set()
+        for i, it in enumerate(all_items):
+            title = it.get("title", "")
+            if title not in seen:
+                seen.add(title)
                 p = naver_api.to_promotion(it, i, "lotteon", "롯데ON")
                 if p:
                     result.append(p)
-            if len(result) >= 3:
-                return result[:5]
+        if len(result) >= 3:
+            return result[:10]
     return SAMPLE
