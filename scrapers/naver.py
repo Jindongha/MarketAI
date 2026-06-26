@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 from models import Promotion
 from scrapers import naver_api
@@ -30,10 +31,9 @@ async def fetch() -> List[Promotion]:
     if not naver_api.is_available():
         return []
 
-    all_items = []
-    for q in FOOD_QUERIES:
-        items = await naver_api.search(q, display=15)
-        all_items.extend(items)
+    # 병렬로 모든 쿼리 동시 실행
+    results = await asyncio.gather(*[naver_api.search(q, display=15) for q in FOOD_QUERIES])
+    all_items = [item for sublist in results for item in sublist]
 
     result = []
     seen_ids: set = set()

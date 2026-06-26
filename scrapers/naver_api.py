@@ -79,18 +79,12 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
     if not title or not image:
         return None
 
-    # productId 있으면 항상 열리는 네이버 카탈로그 페이지 사용
-    if product_id:
-        link = f"https://search.shopping.naver.com/catalog/{product_id}"
-    else:
-        seller_link = item.get("link", "")
-        if seller_link and seller_link.startswith("http"):
-            link = seller_link
-        else:
-            link = f"https://search.shopping.naver.com/search/all?query={urllib.parse.quote(title)}"
+    # 네이버 쇼핑 검색 URL - 로그인 없이 항상 열리고 가격 비교도 가능
+    link = f"https://search.shopping.naver.com/search/all?query={urllib.parse.quote(title)}"
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0
+    badge = f"{discount_rate}% 할인" if discount_rate >= 5 else "최저가"
 
     return Promotion(
         id=f"{platform}_nv_{idx}",
@@ -103,6 +97,6 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
         discount_rate=discount_rate or None,
         url=link,
         category=category or None,
-        badge=None,
+        badge=badge,
     )
 

@@ -167,20 +167,21 @@ function highlight(text, query) {
   return esc(text).replace(re, '<mark>$1</mark>');
 }
 
-function cardHTML(item, query='') {
-  const disc  = item.discount_rate ? `<div class="disc-badge">${item.discount_rate}%↓</div>` : '';
+function cardHTML(item, query='', idx=0) {
+  const disc  = item.discount_rate && item.discount_rate >= 5 ? `<div class="disc-badge">${item.discount_rate}%↓</div>` : '';
   const badge = item.badge ? `<div class="extra-badge">${esc(item.badge)}</div>` : '';
   const imgSrc = item.image_url || '';
+  // 첫 6개는 eager로딩으로 빠르게 표시
+  const loadAttr = idx < 6 ? '' : 'loading="lazy"';
   const imgTag = imgSrc
-    ? `<img class="loading" src="${imgSrc}" alt="" loading="lazy" onload="this.classList.remove('loading')" onerror="this.style.display='none'">`
-    : '';
+    ? `<img class="loading" src="${imgSrc}" alt="" ${loadAttr} onload="this.classList.remove('loading')" onerror="this.style.display='none'">`
+    : `<div class="img-placeholder">${getEmoji(item)}</div>`;
   const price = item.sale_price
     ? `<div class="price-row"><span class="sale-price">${fmt(item.sale_price)}</span>${item.original_price?`<span class="orig-price">${fmt(item.original_price)}</span>`:''}</div>` : '';
   const titleHtml = highlight(item.title, query);
 
   return `<a class="card" href="${item.url}" target="_blank" rel="noopener noreferrer">
     <div class="card-img bg-${item.platform}">
-      <div class="img-placeholder">${getEmoji(item)}</div>
       ${imgTag}${disc}${badge}
     </div>
     <div class="card-body">
@@ -215,7 +216,7 @@ function render() {
     return;
   }
   document.getElementById('content').innerHTML =
-    `<div class="grid">${items.map(it=>cardHTML(it, q)).join('')}</div>`;
+    `<div class="grid">${items.map((it,i)=>cardHTML(it, q, i)).join('')}</div>`;
 }
 
 async function loadPlatform(platform) {
