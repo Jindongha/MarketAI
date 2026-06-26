@@ -62,6 +62,9 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .flyer-card { background:var(--card); border-radius:var(--radius); overflow:hidden; display:block; text-decoration:none; color:inherit; }
 .flyer-card img { width:100%; height:auto; display:block; }
 .flyer-card .flyer-title { padding:8px 12px 10px; font-size:12px; color:var(--muted); }
+.flyer-cover { padding:40px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; }
+.flyer-cover-name { font-size:22px; font-weight:900; color:#fff; letter-spacing:-0.5px; }
+.flyer-cover-cta { font-size:14px; font-weight:700; color:#fff; background:rgba(0,0,0,.25); padding:10px 18px; border-radius:24px; }
 
 /* Card */
 .card { background:var(--card); border-radius:var(--radius); overflow:hidden; display:block; text-decoration:none; color:inherit; transition:transform .15s, box-shadow .15s; }
@@ -206,13 +209,15 @@ function cardHTML(item, query='', idx=0) {
 const FLYER_PLATFORMS = new Set(['emart_flyer', 'lotte_flyer']);
 
 function flyerCardHTML(item, idx) {
-  const imgTag = item.image_url
-    ? `<img src="${item.image_url}" alt="" loading="${idx < 3 ? 'eager' : 'lazy'}" onerror="this.parentElement.style.display='none'">`
-    : '';
-  return `<a class="flyer-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
-    ${imgTag}
-    <div class="flyer-title">${esc(item.title)}</div>
-  </a>`;
+  // 이미지가 있으면 전단 이미지, 없으면(폴백) 브랜드 배너 + 전단보기 CTA
+  const body = item.image_url
+    ? `<img src="${item.image_url}" alt="" loading="${idx < 3 ? 'eager' : 'lazy'}" onerror="this.style.display='none'">
+       <div class="flyer-title">${esc(item.title)}</div>`
+    : `<div class="flyer-cover bg-${item.platform}">
+         <div class="flyer-cover-name">${esc(item.platform_name)}</div>
+         <div class="flyer-cover-cta">📄 이번주 전단행사 보기 →</div>
+       </div>`;
+  return `<a class="flyer-card" href="${item.url}" target="_blank" rel="noopener noreferrer">${body}</a>`;
 }
 
 let allItems = [];

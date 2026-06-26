@@ -1,72 +1,19 @@
-import os
-import re
-import httpx
-from datetime import datetime
 from typing import List
 from models import Promotion
+from scrapers.flyer_common import fetch_flyer
 
-NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
-NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET", "")
-
-
-async def _search_images(query: str, display: int = 20) -> List[dict]:
-    if not NAVER_CLIENT_ID:
-        return []
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as c:
-            r = await c.get(
-                "https://openapi.naver.com/v1/search/image.json",
-                params={"query": query, "display": display, "sort": "date", "filter": "large"},
-                headers={
-                    "X-Naver-Client-Id": NAVER_CLIENT_ID,
-                    "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
-                },
-            )
-            if r.status_code == 200:
-                return r.json().get("items", [])
-    except Exception:
-        pass
-    return []
-
-
-def _clean(text: str) -> str:
-    return re.sub(r"</?b>", "", text).strip()
+# 이마트 '이번주 전단' 공식 뷰어 — 매주 자동으로 최신 전단으로 교체됨
+EMART_FLYER_PAGE = "https://eapp.emart.com/leaflet/leafletView_EL.do"
+EMART_OFFICIAL_VIEW = "https://emartapp.emart.com/webapp/product/flyer?trcknCode=main_leaflet"
+# 이마트 전단 이미지가 올라오는 도메인들
+EMART_IMG_HOSTS = ("emart.com", "ssgcdn.com", "shinsegae", "eapp.emart")
 
 
 async def fetch() -> List[Promotion]:
-    now = datetime.now()
-    query = f"이마트 전단지 {now.year}년 {now.month}월 이번주 행사 할인"
-    items = await _search_images(query, display=20)
-
-    results: List[Promotion] = []
-    seen_links: set = set()
-
-    for i, it in enumerate(items):
-        thumb = it.get("thumbnail", "")
-        link = it.get("link", "") or it.get("originallink", "")
-        title = _clean(it.get("title", "이마트 전단지"))
-
-        if not thumb or not link or link in seen_links:
-            continue
-
-        # 관련 없는 이미지 제외
-        combined = (title + link).lower()
-        if not any(kw in combined for kw in ["이마트", "emart", "전단", "행사", "할인"]):
-            continue
-
-        # 너무 작은 이미지 제외
-        if int(it.get("sizewidth", 300)) < 200:
-            continue
-
-        seen_links.add(link)
-        results.append(Promotion(
-            id=f"emart_flyer_{i}",
-            platform="emart_flyer",
-            platform_name="이마트 전단",
-            title=title or "이마트 이번주 전단 행사",
-            image_url=thumb,
-            url=link,
-            category="전단지",
-        ))
-
-    return results[:12]
+    return await fetch_flyer(
+        platform="emart_flyer",
+        platform_name="이마트 전단",
+        page_url=EMART_FLYER_PAGE,
+        official_view_url=EMART_OFFICIAL_VIEW,
+        allow_hosts=EMART_IMG_HOSTS,
+    )

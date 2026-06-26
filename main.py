@@ -93,14 +93,44 @@ async def debug_pipeline():
         lf = await lotte_flyer.fetch()
         report["flyers"] = {
             "emart_count": len(ef),
-            "emart_sample": [{"title": p.title, "img": (p.image_url or "")[:70]} for p in ef[:3]],
+            "emart_is_fallback": bool(ef and ef[0].id == "emart_flyer_official"),
+            "emart_sample": [{"title": p.title, "img": (p.image_url or "")[:80], "url": p.url[:60]} for p in ef[:3]],
             "lotte_count": len(lf),
-            "lotte_sample": [{"title": p.title, "img": (p.image_url or "")[:70]} for p in lf[:3]],
+            "lotte_is_fallback": bool(lf and lf[0].id == "lotte_flyer_official"),
+            "lotte_sample": [{"title": p.title, "img": (p.image_url or "")[:80], "url": p.url[:60]} for p in lf[:3]],
         }
     except Exception as e:
         report["flyers"] = {"error": f"{type(e).__name__}: {e}"}
 
     return report
+
+
+@app.get("/api/debug/flyer")
+async def debug_flyer():
+    """전단 공식 페이지를 Render가 받아올 수 있는지 (이미지 추출 가능 여부) 진단."""
+    import httpx
+    from scrapers.flyer_common import HEADERS, _extract_images
+    from scrapers.emart_flyer import EMART_FLYER_PAGE, EMART_IMG_HOSTS
+    from scrapers.lotte_flyer import LOTTE_FLYER_PAGE, LOTTE_IMG_HOSTS
+
+    out = {}
+    for name, url, hosts in [
+        ("emart", EMART_FLYER_PAGE, EMART_IMG_HOSTS),
+        ("lotte", LOTTE_FLYER_PAGE, LOTTE_IMG_HOSTS),
+    ]:
+        try:
+            async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as c:
+                r = await c.get(url, headers=HEADERS)
+                imgs = _extract_images(r.text, hosts) if r.status_code == 200 else []
+                out[name] = {
+                    "http_status": r.status_code,
+                    "body_length": len(r.text),
+                    "images_extracted": len(imgs),
+                    "image_sample": imgs[:5],
+                }
+        except Exception as e:
+            out[name] = {"error": f"{type(e).__name__}: {e}"}
+    return out
 
 
 @app.get("/api/debug/coupang")
