@@ -67,6 +67,13 @@ async def search(query: str, display: int = 20) -> List[dict]:
         pass
     return []
 
+def _price_discount_rate(item: dict) -> int:
+    """lprice/hprice 격차로 정렬용 할인율 추정 (0이면 단일가)."""
+    lp = int(item.get("lprice", 0) or 0)
+    hp = int(item.get("hprice", 0) or 0)
+    return int((hp - lp) / hp * 100) if hp > lp > 0 else 0
+
+
 def _resolve_link(raw_link: str, product_id: str) -> Optional[str]:
     """Return the best accessible URL for a product.
 
