@@ -1,42 +1,46 @@
 from typing import List
 from models import Promotion
-from scrapers.images import get_image
 from scrapers import naver_api
 
-SAMPLE: List[Promotion] = [
-    Promotion(id="naver_1", platform="naver", platform_name="네이버쇼핑", title="경북 사과 5kg 선물용 부사", original_price=39000, sale_price=27300, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=사과5kg", category="과일", badge="N페이", image_url=get_image("과일","")),
-    Promotion(id="naver_2", platform="naver", platform_name="네이버쇼핑", title="완도 활전복 1kg 중·소혼합", original_price=48000, sale_price=33600, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=활전복1kg", category="수산물", image_url=get_image("수산물","")),
-    Promotion(id="naver_3", platform="naver", platform_name="네이버쇼핑", title="친환경 무항생제 유정란 30구", original_price=14000, sale_price=9800, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=무항생제유정란", category="달걀", badge="플러스", image_url=get_image("달걀","")),
-    Promotion(id="naver_4", platform="naver", platform_name="네이버쇼핑", title="국내산 표고버섯 1.5kg 선물세트", original_price=55000, sale_price=38500, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=표고버섯선물세트", category="채소", image_url=get_image("채소","")),
-    Promotion(id="naver_5", platform="naver", platform_name="네이버쇼핑", title="전라도 반찬 모음 10종 세트", original_price=35000, sale_price=24500, discount_rate=30, url="https://search.shopping.naver.com/search/all?query=전라도반찬세트", category="간편식", badge="BEST", image_url=get_image("김치","")),
-]
-
-QUERIES = [
-    "과일 사과 배 신선 특가",
-    "채소 양파 감자 당근 할인",
-    "육류 돼지고기 삼겹살 닭고기 특가",
-    "수산물 생선 조개 새우 할인",
-    "라면 즉석밥 즉석식품 특가",
-    "유제품 우유 요거트 치즈 할인",
-    "견과류 아몬드 호두 특가",
-    "김치 반찬 장아찌 특가",
+FOOD_QUERIES = [
+    "신선 과일 사과 배 포도 특가",
+    "신선 채소 양파 감자 당근 할인",
+    "정육 돼지고기 삼겹살 닭고기 특가",
+    "수산물 생선 고등어 새우 오징어 할인",
+    "달걀 우유 두부 신선식품 특가",
+    "김치 깍두기 반찬 할인",
+    "라면 즉석밥 컵라면 특가",
+    "유제품 치즈 요거트 버터 할인",
 ]
 
 async def fetch() -> List[Promotion]:
-    if naver_api.is_available():
-        all_items = []
-        for q in QUERIES:
-            items = await naver_api.search(q, display=10)
-            all_items.extend(items)
-        result = []
-        seen = set()
-        for i, it in enumerate(all_items):
-            title = it.get("title", "")
-            if title not in seen:
-                seen.add(title)
-                p = naver_api.to_promotion(it, i)
-                if p:
-                    result.append(p)
-        if len(result) >= 5:
-            return result[:20]
-    return SAMPLE
+    if not naver_api.is_available():
+        return []
+
+    all_items = []
+    for q in FOOD_QUERIES:
+        items = await naver_api.search(q, display=15)
+        all_items.extend(items)
+
+    result = []
+    seen_ids: set = set()
+    seen_titles: set = set()
+    for i, it in enumerate(all_items):
+        product_id = it.get("productId", "")
+        title = it.get("title", "")
+        # 식품 카테고리만 허용
+        if not naver_api.is_food_item(it):
+            continue
+        # productId 없으면 스킵 (bot-check URL 방지)
+        if not product_id:
+            continue
+        # 중복 제거
+        if product_id in seen_ids or title in seen_titles:
+            continue
+        seen_ids.add(product_id)
+        seen_titles.add(title)
+        p = naver_api.to_promotion(it, i)
+        if p:
+            result.append(p)
+
+    return result[:30]

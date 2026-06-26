@@ -9,7 +9,7 @@ from scrapers import emart, traders, costco, homeplus, emart_everyday, lotteon, 
 router = APIRouter(prefix="/api/promotions", tags=["promotions"])
 
 _cache: dict = {}
-CACHE_TTL = 1800
+CACHE_TTL = 600  # 10분
 
 PLATFORM_MAP = {
     "kurly": kurly.fetch,

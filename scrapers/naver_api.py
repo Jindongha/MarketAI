@@ -1,11 +1,14 @@
 import os
 import re
+import urllib.parse
 import httpx
 from typing import List, Optional
 from models import Promotion
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET", "")
+
+FOOD_CATEGORIES = {"식품", "음식료/담배", "식품/생필품"}
 
 PLATFORM_RULES = [
     (["쿠팡"],           "coupang",  "쿠팡"),
@@ -34,6 +37,17 @@ def clean_title(title: str) -> str:
 def is_available() -> bool:
     return bool(NAVER_CLIENT_ID and NAVER_CLIENT_SECRET)
 
+def is_food_item(item: dict) -> bool:
+    cat1 = item.get("category1", "")
+    if cat1 in FOOD_CATEGORIES:
+        return True
+    # category1이 비어있으면 category2로 판단
+    if not cat1:
+        cat2 = item.get("category2", "")
+        food_keywords = ["과일", "채소", "정육", "수산", "유제품", "달걀", "계란", "라면", "즉석", "음료", "커피", "과자", "스낵", "김치", "반찬", "밥", "면"]
+        return any(kw in cat2 for kw in food_keywords)
+    return False
+
 async def search(query: str, display: int = 20) -> List[dict]:
     if not is_available():
         return []
@@ -41,7 +55,7 @@ async def search(query: str, display: int = 20) -> List[dict]:
         async with httpx.AsyncClient(timeout=8.0) as c:
             r = await c.get(
                 "https://openapi.naver.com/v1/search/shop.json",
-                params={"query": query, "display": display, "sort": "asc"},
+                params={"query": query, "display": display, "sort": "sim"},
                 headers={
                     "X-Naver-Client-Id": NAVER_CLIENT_ID,
                     "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
@@ -62,10 +76,10 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
     category = item.get("category4") or item.get("category3") or item.get("category2") or ""
     product_id = item.get("productId", "")
 
-    if not title:
+    if not title or not image:
         return None
 
-    # Naver catalog URL is always accessible (no login, no app required)
+    # productId 있으면 항상 열리는 네이버 카탈로그 페이지 사용
     if product_id:
         link = f"https://search.shopping.naver.com/catalog/{product_id}"
     else:
@@ -73,8 +87,6 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
         if seller_link and seller_link.startswith("http"):
             link = seller_link
         else:
-            # fallback: Naver Shopping search by title
-            import urllib.parse
             link = f"https://search.shopping.naver.com/search/all?query={urllib.parse.quote(title)}"
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
@@ -91,5 +103,6 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
         discount_rate=discount_rate or None,
         url=link,
         category=category or None,
-        badge="네이버쇼핑" if platform == "naver" else None,
+        badge=None,
     )
+
