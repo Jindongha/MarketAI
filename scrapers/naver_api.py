@@ -1,6 +1,5 @@
 import os
 import re
-import urllib.parse
 import httpx
 from typing import List, Optional
 from models import Promotion
@@ -79,8 +78,10 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
     if not title or not image:
         return None
 
-    # 네이버 쇼핑 검색 URL - 로그인 없이 항상 열리고 가격 비교도 가능
-    link = f"https://search.shopping.naver.com/search/all?query={urllib.parse.quote(title)}"
+    # API의 실제 상품 링크 사용 (판매자 상세 페이지로 직접 이동)
+    link = item.get("link", "")
+    if not link:
+        return None
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0
