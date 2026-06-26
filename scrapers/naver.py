@@ -3,7 +3,7 @@ from typing import List
 from models import Promotion
 from scrapers import naver_api
 
-# 할인 행사 중인 인기 식품 쿼리
+# 인기 할인 식품 검색 쿼리
 FOOD_QUERIES = [
     "과일 사과 배 신선 할인 행사",
     "채소 양파 감자 신선 특가 행사",
@@ -23,8 +23,6 @@ FAKE_FOOD_KEYWORDS = [
     "계절 선물", "수확 계절", "가을 열매",
 ]
 
-MIN_DISCOUNT = 10  # 최소 할인율 (%)
-
 def is_real_food(title: str) -> bool:
     clean = title.replace("<b>", "").replace("</b>", "")
     return not any(kw in clean for kw in FAKE_FOOD_KEYWORDS)
@@ -43,35 +41,39 @@ async def fetch() -> List[Promotion]:
     results = await asyncio.gather(*[naver_api.search(q, display=20) for q in FOOD_QUERIES])
     all_items = [item for sublist in results for item in sublist]
 
-    discounted = []
     seen_ids: set = set()
     seen_titles: set = set()
+    discounted = []
+    others = []
 
     for i, it in enumerate(all_items):
         product_id = it.get("productId", "")
         title = it.get("title", "")
+        link = it.get("link", "")
 
         if not naver_api.is_food_item(it):
             continue
-        if not product_id:
+        if not product_id or not link:
             continue
         if not is_real_food(title):
             continue
         if product_id in seen_ids or title in seen_titles:
             continue
 
-        # 실제 할인이 있는 상품만 (hprice > lprice)
-        discount = get_discount_rate(it)
-        if discount < MIN_DISCOUNT:
-            continue
-
         seen_ids.add(product_id)
         seen_titles.add(title)
 
+        discount = get_discount_rate(it)
         p = naver_api.to_promotion(it, i, force_platform="naver", force_name="네이버쇼핑")
-        if p:
-            discounted.append((discount, p))
+        if not p:
+            continue
 
-    # 할인율 높은 순 정렬
+        if discount >= 5:
+            discounted.append((discount, p))
+        else:
+            others.append(p)
+
+    # 할인 상품을 할인율 높은 순으로 앞에, 나머지는 뒤에
     discounted.sort(key=lambda x: x[0], reverse=True)
-    return [p for _, p in discounted[:30]]
+    result = [p for _, p in discounted] + others
+    return result[:30]
