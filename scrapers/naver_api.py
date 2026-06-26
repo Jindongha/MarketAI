@@ -84,7 +84,6 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0
-    badge = f"{discount_rate}% 할인" if discount_rate >= 5 else "최저가"
 
     return Promotion(
         id=f"{platform}_nv_{idx}",
@@ -97,6 +96,6 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
         discount_rate=discount_rate or None,
         url=link,
         category=category or None,
-        badge=badge,
+        badge=None,
     )
 

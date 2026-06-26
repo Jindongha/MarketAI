@@ -3,19 +3,19 @@ from typing import List
 from models import Promotion
 from scrapers import naver_api
 
+# 할인 행사 중인 인기 식품 쿼리
 FOOD_QUERIES = [
-    "국내산 사과 배 신선 과일 kg",
-    "신선 채소 양파 감자 당근 kg",
-    "돼지고기 삼겹살 목살 냉장 g",
-    "고등어 갈치 새우 오징어 생선 신선",
-    "무항생제 달걀 30구 특가",
-    "우유 두부 콩나물 신선식품",
-    "배추김치 포기김치 깍두기 kg",
-    "농심 신라면 오뚜기 라면 즉석밥",
-    "서울우유 요거트 치즈 유제품",
+    "과일 사과 배 신선 할인 행사",
+    "채소 양파 감자 신선 특가 행사",
+    "삼겹살 목살 닭가슴살 할인 행사",
+    "고등어 새우 오징어 생선 할인 특가",
+    "달걀 우유 두부 할인 행사",
+    "김치 반찬 할인 특가",
+    "라면 즉석밥 할인 행사",
+    "요거트 치즈 유제품 할인 특가",
+    "견과류 아몬드 호두 할인 행사",
 ]
 
-# 실제 식품이 아닌 상품 제목 키워드 블랙리스트
 FAKE_FOOD_KEYWORDS = [
     "장난감", "완구", "모형", "소꿉", "역할놀이", "인형",
     "박스세트", "본상품", "바구니", "조화", "조형물",
@@ -23,41 +23,55 @@ FAKE_FOOD_KEYWORDS = [
     "계절 선물", "수확 계절", "가을 열매",
 ]
 
+MIN_DISCOUNT = 10  # 최소 할인율 (%)
+
 def is_real_food(title: str) -> bool:
     clean = title.replace("<b>", "").replace("</b>", "")
     return not any(kw in clean for kw in FAKE_FOOD_KEYWORDS)
+
+def get_discount_rate(item: dict) -> int:
+    lprice = int(item.get("lprice", 0) or 0)
+    hprice = int(item.get("hprice", 0) or 0)
+    if hprice > lprice > 0:
+        return int((hprice - lprice) / hprice * 100)
+    return 0
 
 async def fetch() -> List[Promotion]:
     if not naver_api.is_available():
         return []
 
-    # 병렬로 모든 쿼리 동시 실행
-    results = await asyncio.gather(*[naver_api.search(q, display=15) for q in FOOD_QUERIES])
+    results = await asyncio.gather(*[naver_api.search(q, display=20) for q in FOOD_QUERIES])
     all_items = [item for sublist in results for item in sublist]
 
-    result = []
+    discounted = []
     seen_ids: set = set()
     seen_titles: set = set()
+
     for i, it in enumerate(all_items):
         product_id = it.get("productId", "")
         title = it.get("title", "")
-        # 식품 카테고리만 허용
+
         if not naver_api.is_food_item(it):
             continue
-        # productId 없으면 스킵 (bot-check URL 방지)
         if not product_id:
             continue
-        # 장난감/가짜 식품 제거
         if not is_real_food(title):
             continue
-        # 중복 제거
         if product_id in seen_ids or title in seen_titles:
             continue
+
+        # 실제 할인이 있는 상품만 (hprice > lprice)
+        discount = get_discount_rate(it)
+        if discount < MIN_DISCOUNT:
+            continue
+
         seen_ids.add(product_id)
         seen_titles.add(title)
-        # 모든 아이템을 네이버쇼핑으로 표시 (쿠팡 셀러여도 네이버쇼핑 탭이므로)
+
         p = naver_api.to_promotion(it, i, force_platform="naver", force_name="네이버쇼핑")
         if p:
-            result.append(p)
+            discounted.append((discount, p))
 
-    return result[:30]
+    # 할인율 높은 순 정렬
+    discounted.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in discounted[:30]]
