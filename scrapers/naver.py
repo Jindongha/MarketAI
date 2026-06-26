@@ -44,7 +44,6 @@ async def fetch() -> List[Promotion]:
     seen_ids: set = set()
     seen_titles: set = set()
     discounted = []
-    others = []
 
     for i, it in enumerate(all_items):
         product_id = it.get("productId", "")
@@ -70,10 +69,7 @@ async def fetch() -> List[Promotion]:
 
         if discount >= 5:
             discounted.append((discount, p))
-        else:
-            others.append(p)
 
-    # 할인 상품을 할인율 높은 순으로 앞에, 나머지는 뒤에
+    # 할인율 높은 순 정렬
     discounted.sort(key=lambda x: x[0], reverse=True)
-    result = [p for _, p in discounted] + others
-    return result[:30]
+    return [p for _, p in discounted[:30]]

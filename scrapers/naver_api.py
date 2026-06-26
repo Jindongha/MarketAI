@@ -78,10 +78,15 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
     if not title or not image:
         return None
 
-    # API의 실제 상품 링크 사용 (판매자 상세 페이지로 직접 이동)
-    link = item.get("link", "")
-    if not link:
-        return None
+    raw_link = item.get("link", "")
+    # link.shopping.naver.com 은 로그인을 요구하는 추적 URL → 카탈로그 페이지로 대체
+    if not raw_link or "link.shopping.naver.com" in raw_link:
+        if product_id:
+            link = f"https://search.shopping.naver.com/catalog/{product_id}"
+        else:
+            return None
+    else:
+        link = raw_link
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0
