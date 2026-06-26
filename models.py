@@ -19,3 +19,15 @@ class Promotion(BaseModel):
 class PromotionsResponse(BaseModel):
     items: List[Promotion]
     total: int
+
+
+class StoreGroup(BaseModel):
+    """전체 보기 화면에서 매장 한 곳의 인기·할인 상품 묶음."""
+    platform: str
+    platform_name: str
+    items: List[Promotion]
+
+
+class SummaryResponse(BaseModel):
+    groups: List[StoreGroup]
+    total: int

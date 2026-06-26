@@ -67,6 +67,17 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   background:rgba(167,139,250,.12); padding:5px 12px; border-radius:20px;
   white-space:nowrap; }
 
+/* 전체 보기 — 매장별 섹션 + 가로 스크롤 */
+.store-section { margin-top:6px; }
+.store-head { display:flex; align-items:center; gap:8px; padding:16px 14px 9px; max-width:640px; margin:0 auto; }
+.store-name { font-size:13px; font-weight:800; padding:3px 10px; border-radius:7px; white-space:nowrap; }
+.store-sub { font-size:11px; color:var(--muted); }
+.store-more { margin-left:auto; font-size:11px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,.12); border:none; padding:4px 11px; border-radius:20px; cursor:pointer; white-space:nowrap; }
+.store-more:active { transform:scale(0.94); }
+.hscroll { display:flex; gap:10px; overflow-x:auto; padding:2px 12px 4px; max-width:640px; margin:0 auto; scrollbar-width:none; scroll-snap-type:x proximity; }
+.hscroll::-webkit-scrollbar { display:none; }
+.hscroll .card { flex:0 0 150px; width:150px; scroll-snap-align:start; }
+
 /* Card */
 .card { background:var(--card); border-radius:var(--radius); overflow:hidden; display:block; text-decoration:none; color:inherit; transition:transform .15s, box-shadow .15s; }
 .card:active { transform:scale(0.96); }
@@ -155,7 +166,8 @@ mark { background:rgba(167,139,250,.3); color:#fff; border-radius:2px; }
 
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tab active" data-p="naver">네이버쇼핑</button>
+    <button class="tab active" data-p="all">🏠 전체</button>
+    <button class="tab" data-p="naver">네이버쇼핑</button>
     <button class="tab" data-p="emart_flyer">이마트전단</button>
     <button class="tab" data-p="lotte_flyer">롯데마트전단</button>
   </div>
@@ -244,20 +256,56 @@ function flyerBannerHTML(platform) {
 }
 
 let allItems = [];
+let summaryGroups = [];        // 전체 보기: 매장별 묶음
+let viewMode = 'summary';      // 'summary' | 'platform'
 let currentPlatform = 'all';
 let searchQuery = '';
 let currentController = null;
 
+function matchQuery(it, q) {
+  return it.title.toLowerCase().includes(q) ||
+    (it.category||'').toLowerCase().includes(q) ||
+    it.platform_name.toLowerCase().includes(q);
+}
+
+function storeSectionHTML(group, q) {
+  let items = group.items;
+  if (q) items = items.filter(it => matchQuery(it, q));
+  if (!items.length) return '';
+  const cards = items.map((it, i) => cardHTML(it, q, i)).join('');
+  return `<div class="store-section">
+    <div class="store-head">
+      <span class="store-name ptag-${group.platform}">${esc(group.platform_name)}</span>
+      <span class="store-sub">인기 할인 BEST</span>
+      <button class="store-more" data-store="${group.platform}">전체보기 →</button>
+    </div>
+    <div class="hscroll">${cards}</div>
+  </div>`;
+}
+
+function renderSummary() {
+  const q = searchQuery.trim().toLowerCase();
+  const sections = summaryGroups.map(g => storeSectionHTML(g, q)).filter(Boolean);
+  const total = summaryGroups.reduce((n, g) =>
+    n + (q ? g.items.filter(it => matchQuery(it, q)).length : g.items.length), 0);
+  document.getElementById('count').textContent = total ? `${total}개 상품` : '';
+
+  const content = document.getElementById('content');
+  if (!sections.length) {
+    content.innerHTML = `<div class="no-results"><div class="icon">🔍</div><p>${q ? `"${esc(q)}" 검색 결과가 없습니다` : '상품을 불러오는 중입니다'}</p></div>`;
+    return;
+  }
+  content.innerHTML = sections.join('');
+  content.querySelectorAll('.store-more').forEach(btn => {
+    btn.addEventListener('click', () => selectPlatform(btn.dataset.store));
+  });
+}
+
 function render() {
+  if (viewMode === 'summary') { renderSummary(); return; }
   const q = searchQuery.trim().toLowerCase();
   let items = allItems;
-  if(q) {
-    items = items.filter(it =>
-      it.title.toLowerCase().includes(q) ||
-      (it.category||'').toLowerCase().includes(q) ||
-      it.platform_name.toLowerCase().includes(q)
-    );
-  }
+  if(q) items = items.filter(it => matchQuery(it, q));
   const countEl = document.getElementById('count');
   countEl.textContent = items.length ? `${items.length}개 상품` : '';
 
@@ -276,10 +324,34 @@ function render() {
     banner + `<div class="grid">${cards}</div>`;
 }
 
+async function loadSummary() {
+  if (currentController) currentController.abort();
+  const ctrl = new AbortController();
+  currentController = ctrl;
+  viewMode = 'summary';
+  currentPlatform = 'all';
+  document.getElementById('content').innerHTML =
+    '<div class="loader"><div class="spinner"></div><span>매장별 인기 할인 상품 수집 중...</span></div>';
+  try {
+    const r = await fetch('/api/promotions/summary', { signal: ctrl.signal });
+    if (ctrl.signal.aborted) return;
+    if(!r.ok) throw new Error();
+    const data = await r.json();
+    if (ctrl.signal.aborted) return;
+    summaryGroups = data.groups || [];
+    renderSummary();
+  } catch(e) {
+    if (e.name === 'AbortError') return;
+    document.getElementById('content').innerHTML =
+      '<div class="no-results"><div class="icon">⚠️</div><p>데이터를 불러올 수 없습니다</p></div>';
+  }
+}
+
 async function loadPlatform(platform) {
   if (currentController) currentController.abort();
   const ctrl = new AbortController();
   currentController = ctrl;
+  viewMode = 'platform';
   currentPlatform = platform;
   document.getElementById('content').innerHTML =
     '<div class="loader"><div class="spinner"></div><span>불러오는 중...</span></div>';
@@ -298,16 +370,23 @@ async function loadPlatform(platform) {
   }
 }
 
+// 탭(또는 전체보기 버튼)으로 화면 전환. 탭 버튼이 있으면 활성표시도 동기화.
+function selectPlatform(platform) {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').classList.remove('show');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(x => x.classList.remove('active'));
+  const matched = Array.from(tabs).find(x => x.dataset.p === platform);
+  if (matched) matched.classList.add('active');
+  window.scrollTo(0, 0);
+  if (platform === 'all') loadSummary();
+  else loadPlatform(platform);
+}
+
 // Tab events
 document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    searchQuery = '';
-    document.getElementById('searchInput').value = '';
-    document.getElementById('clearBtn').classList.remove('show');
-    loadPlatform(t.dataset.p);
-  });
+  t.addEventListener('click', () => selectPlatform(t.dataset.p));
 });
 
 // Search events
@@ -328,7 +407,7 @@ clearBtn.addEventListener('click', () => {
   input.focus();
 });
 
-loadPlatform('naver');
+loadSummary();
 </script>
 </body>
 </html>
