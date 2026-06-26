@@ -76,20 +76,24 @@ async def debug_pipeline():
     else:
         report["naver"] = {"status": "NAVER_KEY_NOT_SET"}
 
-    # ---- 전단지 ----
+    # ---- 마트 전단 상품 (이마트/롯데마트) ----
     try:
+        from scrapers import emart_flyer as ef_mod, lotte_flyer as lf_mod
+        # 실제 검색 결과의 mallName 분포를 확인 (필터 튜닝용)
+        emart_raw = await naver_api.search(ef_mod.EMART_QUERIES[0], display=20)
+        lotte_raw = await naver_api.search(lf_mod.LOTTE_QUERIES[0], display=20)
         ef = await emart_flyer.fetch()
         lf = await lotte_flyer.fetch()
-        report["flyers"] = {
-            "emart_count": len(ef),
-            "emart_is_fallback": bool(ef and ef[0].id == "emart_flyer_official"),
-            "emart_sample": [{"title": p.title, "img": (p.image_url or "")[:80], "url": p.url[:60]} for p in ef[:3]],
-            "lotte_count": len(lf),
-            "lotte_is_fallback": bool(lf and lf[0].id == "lotte_flyer_official"),
-            "lotte_sample": [{"title": p.title, "img": (p.image_url or "")[:80], "url": p.url[:60]} for p in lf[:3]],
+        report["mart_products"] = {
+            "emart_final_count": len(ef),
+            "emart_final_sample": [{"title": p.title, "price": p.sale_price} for p in ef[:5]],
+            "emart_raw_mallNames": sorted({it.get("mallName", "?") for it in emart_raw}),
+            "lotte_final_count": len(lf),
+            "lotte_final_sample": [{"title": p.title, "price": p.sale_price} for p in lf[:5]],
+            "lotte_raw_mallNames": sorted({it.get("mallName", "?") for it in lotte_raw}),
         }
     except Exception as e:
-        report["flyers"] = {"error": f"{type(e).__name__}: {e}"}
+        report["mart_products"] = {"error": f"{type(e).__name__}: {e}"}
 
     return report
 
