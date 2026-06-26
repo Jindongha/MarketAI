@@ -11,6 +11,7 @@
   --lotte:#e31837; --coupang:#ff6000; --ssg:#cc0000; --kurly:#5f0080;
   --emart:#c89b00; --traders:#0065BD; --costco:#005DAA; --homeplus:#0066CC;
   --everyday:#FF6B35; --lotteon:#E40028; --toss:#0064FF; --eleven:#FF0033; --naver:#03C75A;
+  --emart_flyer:#c89b00; --lotte_flyer:#e31837;
   --bg:#0f0f1a; --surface:#1a1a2e; --card:#22223a; --border:#2d2d50;
   --text:#f0f0f0; --muted:#7a7a9a; --radius:16px;
 }
@@ -50,10 +51,17 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .tab[data-p="lotteon"].active{ background:var(--lotteon); }
 .tab[data-p="toss"].active   { background:var(--toss); }
 .tab[data-p="eleven"].active { background:var(--eleven); }
-.tab[data-p="naver"].active  { background:var(--naver); }
+.tab[data-p="naver"].active      { background:var(--naver); }
+.tab[data-p="emart_flyer"].active{ background:var(--emart); color:#111; }
+.tab[data-p="lotte_flyer"].active{ background:var(--lotte); }
 
 /* Grid */
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 10px; max-width:640px; margin:0 auto; }
+/* Flyer gallery — single column, taller images */
+.flyer-grid { display:flex; flex-direction:column; gap:12px; padding:12px 10px; max-width:640px; margin:0 auto; }
+.flyer-card { background:var(--card); border-radius:var(--radius); overflow:hidden; display:block; text-decoration:none; color:inherit; }
+.flyer-card img { width:100%; height:auto; display:block; }
+.flyer-card .flyer-title { padding:8px 12px 10px; font-size:12px; color:var(--muted); }
 
 /* Card */
 .card { background:var(--card); border-radius:var(--radius); overflow:hidden; display:block; text-decoration:none; color:inherit; transition:transform .15s, box-shadow .15s; }
@@ -137,6 +145,8 @@ mark { background:rgba(167,139,250,.3); color:#fff; border-radius:2px; }
   <div class="tabs">
     <button class="tab active" data-p="naver">네이버쇼핑</button>
     <button class="tab" data-p="coupang">쿠팡</button>
+    <button class="tab" data-p="emart_flyer">이마트전단</button>
+    <button class="tab" data-p="lotte_flyer">롯데마트전단</button>
   </div>
 </div>
 
@@ -193,6 +203,18 @@ function cardHTML(item, query='', idx=0) {
   </a>`;
 }
 
+const FLYER_PLATFORMS = new Set(['emart_flyer', 'lotte_flyer']);
+
+function flyerCardHTML(item, idx) {
+  const imgTag = item.image_url
+    ? `<img src="${item.image_url}" alt="" loading="${idx < 3 ? 'eager' : 'lazy'}" onerror="this.parentElement.style.display='none'">`
+    : '';
+  return `<a class="flyer-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+    ${imgTag}
+    <div class="flyer-title">${esc(item.title)}</div>
+  </a>`;
+}
+
 let allItems = [];
 let currentPlatform = 'all';
 let searchQuery = '';
@@ -213,9 +235,16 @@ function render() {
 
   if(!items.length) {
     document.getElementById('content').innerHTML =
-      `<div class="no-results"><div class="icon">🔍</div><p>"${esc(q)}" 검색 결과가 없습니다</p></div>`;
+      `<div class="no-results"><div class="icon">🔍</div><p>${q ? `"${esc(q)}" 검색 결과가 없습니다` : '상품을 불러올 수 없습니다'}</p></div>`;
     return;
   }
+
+  if(FLYER_PLATFORMS.has(currentPlatform)) {
+    document.getElementById('content').innerHTML =
+      `<div class="flyer-grid">${items.map((it,i)=>flyerCardHTML(it,i)).join('')}</div>`;
+    return;
+  }
+
   document.getElementById('content').innerHTML =
     `<div class="grid">${items.map((it,i)=>cardHTML(it, q, i)).join('')}</div>`;
 }

@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import List
 from models import Promotion
 from scrapers import naver_api
@@ -21,13 +22,26 @@ FAKE_FOOD_KEYWORDS = [
     "박스세트", "본상품", "바구니", "조화", "조형물",
     "pcs", "PCS", "개입 사과 배 오렌지 포도 키위",
     "계절 선물", "수확 계절", "가을 열매",
+    # 선물세트류 — 할인이 아닌 일반 상품에 '행사'가 붙는 오탐 방지
+    "선물세트", "선물용", "기프트", "명절선물", "세트상품", "추석선물", "설날선물",
 ]
 
-# 제목에 이 단어가 있어야 할인 상품으로 인정
-DISCOUNT_TITLE_KEYWORDS = [
-    "할인", "특가", "행사", "세일", "sale", "SALE",
-    "타임딜", "핫딜", "%", "원→", "↓", "마감임박",
-    "오늘만", "반값", "1+1", "덤증정", "이벤트",
+# 명백한 할인 표현 (단어만으로 할인 확정)
+# '행사', '이벤트', 단독 '%'는 제외 — 선물세트·'100% 국산' 등 오탐이 많음
+DISCOUNT_WORDS = [
+    "특가", "세일", "타임딜", "핫딜", "마감임박", "반값",
+    "행사가", "할인가", "특별가", "균일가", "떨이", "초특가",
+    "1+1", "2+1", "쿠폰할인", "즉시할인", "덤증정",
+]
+
+# 'NN% 할인', '할인 NN%', 'NN%↓' 처럼 % 가 할인과 함께 쓰인 경우만 인정
+DISCOUNT_PATTERNS = [
+    re.compile(r"\d+\s*%\s*(할인|세일|↓|off|OFF|DC|dc)"),
+    re.compile(r"(할인|세일)\s*\d+\s*%"),
+    re.compile(r"\d+\s*원\s*(할인|↓|→)"),
+    re.compile(r"\d+\s*%\s*↓"),
+    # '할인'이 점포명(할인점/할인마트)이 아닌 진짜 할인일 때
+    re.compile(r"할인(?!점|마트|매장)"),
 ]
 
 def is_real_food(title: str) -> bool:
@@ -36,7 +50,9 @@ def is_real_food(title: str) -> bool:
 
 def has_discount_keyword(title: str) -> bool:
     clean = title.replace("<b>", "").replace("</b>", "")
-    return any(kw in clean for kw in DISCOUNT_TITLE_KEYWORDS)
+    if any(kw in clean for kw in DISCOUNT_WORDS):
+        return True
+    return any(p.search(clean) for p in DISCOUNT_PATTERNS)
 
 def get_price_discount_rate(item: dict) -> int:
     lprice = int(item.get("lprice", 0) or 0)

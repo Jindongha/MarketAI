@@ -5,6 +5,7 @@ from typing import Optional
 from models import PromotionsResponse
 from scrapers import kurly, lotte, coupang, ssg
 from scrapers import emart, traders, costco, homeplus, emart_everyday, lotteon, toss, eleven, naver
+from scrapers import emart_flyer, lotte_flyer
 
 router = APIRouter(prefix="/api/promotions", tags=["promotions"])
 
@@ -25,6 +26,8 @@ PLATFORM_MAP = {
     "toss": toss.fetch,
     "eleven": eleven.fetch,
     "naver": naver.fetch,
+    "emart_flyer": emart_flyer.fetch,
+    "lotte_flyer": lotte_flyer.fetch,
 }
 
 

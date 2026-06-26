@@ -1,61 +1,125 @@
 import asyncio
-from typing import List
+import re
+import httpx
+from bs4 import BeautifulSoup
+from typing import List, Optional
 from models import Promotion
-from scrapers.images import get_image
-from scrapers import naver_api
 
-# 쿠팡이 네이버 쇼핑에 입점한 상품 위주로 검색
-COUPANG_QUERIES = [
-    "쿠팡 로켓배송 식품 할인 특가",
-    "쿠팡 로켓프레시 신선 과일 채소",
-    "쿠팡 라면 즉석밥 음료 할인",
-    "쿠팡 고기 닭 냉장 특가",
-    "쿠팡 달걀 우유 두부 신선",
+# 쿠팡은 네이버쇼핑에 더 이상 입점하지 않으므로 쿠팡 직접 크롤링
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Linux; Android 12; SM-G998B) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.4472.124 Mobile Safari/537.36"
+    ),
+    "Accept-Language": "ko-KR,ko;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Referer": "https://www.coupang.com/",
+}
+
+SEARCH_QUERIES = [
+    "신선식품 할인",
+    "식품 특가",
+    "과일 채소 할인",
 ]
 
-FAKE_FOOD_KEYWORDS = [
-    "장난감", "완구", "모형", "소꿉", "역할놀이", "인형",
-    "박스세트", "본상품", "바구니", "조화", "조형물",
-    "pcs", "PCS",
-]
 
-def is_real_food(title: str) -> bool:
-    clean = title.replace("<b>", "").replace("</b>", "")
-    return not any(kw in clean for kw in FAKE_FOOD_KEYWORDS)
+def _parse_price(text: str) -> Optional[int]:
+    digits = re.sub(r"[^0-9]", "", text)
+    return int(digits) if digits else None
+
+
+def _extract_from_html(html: str, id_offset: int) -> List[Promotion]:
+    soup = BeautifulSoup(html, "lxml")
+    results: List[Promotion] = []
+
+    items = (
+        soup.select("ul.search-product-list > li.search-product") or
+        soup.select("ul#productList > li") or
+        soup.select(".search-product") or
+        []
+    )
+
+    for i, item in enumerate(items):
+        if item.select_one(".ad-badge") or "ad" in " ".join(item.get("class", [])):
+            continue
+
+        name_el = item.select_one(".name") or item.select_one("h2.name")
+        price_el = (
+            item.select_one(".price-value") or
+            item.select_one("strong.price-value") or
+            item.select_one(".price")
+        )
+        img_el = item.select_one("img.search-product-wrap-img") or item.select_one("img")
+        link_el = item.select_one("a.search-product-link") or item.select_one("a[href]")
+
+        if not name_el or not link_el:
+            continue
+
+        title = name_el.get_text(strip=True)
+        if not title or len(title) < 3:
+            continue
+
+        img_src: Optional[str] = None
+        if img_el:
+            src = img_el.get("src") or img_el.get("data-src") or ""
+            if src and not src.startswith("data:"):
+                img_src = src if src.startswith("http") else "https:" + src
+
+        href = link_el.get("href", "")
+        if href.startswith("/"):
+            href = "https://www.coupang.com" + href
+        if not href.startswith("http"):
+            continue
+
+        sale_price = _parse_price(price_el.get_text(strip=True)) if price_el else None
+
+        orig_el = item.select_one(".base-price") or item.select_one(".original-price")
+        original_price = _parse_price(orig_el.get_text(strip=True)) if orig_el else None
+        discount_rate: Optional[int] = None
+        if original_price and sale_price and original_price > sale_price:
+            discount_rate = int((original_price - sale_price) / original_price * 100)
+
+        results.append(Promotion(
+            id=f"coupang_{id_offset + i}",
+            platform="coupang",
+            platform_name="쿠팡",
+            title=title,
+            image_url=img_src,
+            original_price=original_price,
+            sale_price=sale_price,
+            discount_rate=discount_rate,
+            url=href,
+        ))
+
+    return results
+
+
+async def _fetch_url(url: str, id_offset: int) -> List[Promotion]:
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+            r = await c.get(url, headers=HEADERS)
+            if r.status_code == 200:
+                return _extract_from_html(r.text, id_offset)
+    except Exception:
+        pass
+    return []
+
 
 async def fetch() -> List[Promotion]:
-    if not naver_api.is_available():
-        return []
+    urls = [
+        f"https://www.coupang.com/np/search?q={q.replace(' ', '+')}&channel=user&sorter=scoreDesc"
+        for q in SEARCH_QUERIES
+    ]
+    results = await asyncio.gather(*[_fetch_url(u, i * 30) for i, u in enumerate(urls)])
 
-    results = await asyncio.gather(*[naver_api.search(q, display=20) for q in COUPANG_QUERIES])
-    all_items = [item for sublist in results for item in sublist]
-
-    seen_ids: set = set()
     seen_titles: set = set()
-    result = []
+    all_items: List[Promotion] = []
+    for group in results:
+        for item in group:
+            if item.title not in seen_titles:
+                seen_titles.add(item.title)
+                all_items.append(item)
 
-    for i, it in enumerate(all_items):
-        product_id = it.get("productId", "")
-        title = it.get("title", "")
-        link = it.get("link", "")
-        mall = it.get("mallName", "")
-
-        # 쿠팡 판매 상품만
-        if "쿠팡" not in mall:
-            continue
-        if not naver_api.is_food_item(it):
-            continue
-        if not product_id or not link:
-            continue
-        if not is_real_food(title):
-            continue
-        if product_id in seen_ids or title in seen_titles:
-            continue
-
-        seen_ids.add(product_id)
-        seen_titles.add(title)
-        p = naver_api.to_promotion(it, i, force_platform="coupang", force_name="쿠팡")
-        if p:
-            result.append(p)
-
-    return result[:20]
+    all_items.sort(key=lambda x: x.discount_rate or 0, reverse=True)
+    return all_items[:25]
