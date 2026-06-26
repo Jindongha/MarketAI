@@ -76,6 +76,10 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .card-img img { width:100%; height:100%; object-fit:cover; transition:opacity .3s; }
 .card-img img.loading { opacity:0; }
 .img-placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:42px; }
+/* Flyer page images — portrait aspect ratio (leaflet pages are taller than wide) */
+.flyer-page-img { width:100%; aspect-ratio:2/3; position:relative; overflow:hidden; }
+.flyer-page-img img { width:100%; height:100%; object-fit:cover; transition:opacity .3s; }
+.flyer-page-img img.loading { opacity:0; }
 
 .disc-badge { position:absolute; top:8px; left:8px; background:rgba(231,76,60,.9); color:#fff; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; backdrop-filter:blur(2px); z-index:1; }
 .extra-badge { position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:5px; backdrop-filter:blur(4px); z-index:1; white-space:nowrap; max-width:60px; overflow:hidden; text-overflow:ellipsis; }
@@ -185,6 +189,20 @@ function highlight(text, query) {
   return esc(text).replace(re, '<mark>$1</mark>');
 }
 
+function flyerCardHTML(item, idx=0) {
+  const loadAttr = idx < 4 ? '' : 'loading="lazy"';
+  const imgTag = item.image_url
+    ? `<img class="loading" src="${item.image_url}" alt="" ${loadAttr} onload="this.classList.remove('loading')" onerror="this.style.display='none'">`
+    : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px">🗂️</div>`;
+  return `<a class="card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+    <div class="flyer-page-img bg-${item.platform}">${imgTag}</div>
+    <div class="card-body">
+      <div class="ptag ptag-${item.platform}">${esc(item.platform_name)}</div>
+      <div class="card-title">${esc(item.title)}</div>
+    </div>
+  </a>`;
+}
+
 function cardHTML(item, query='', idx=0) {
   const disc  = item.discount_rate && item.discount_rate >= 5 ? `<div class="disc-badge">${item.discount_rate}%↓</div>` : '';
   const badge = item.badge ? `<div class="extra-badge">${esc(item.badge)}</div>` : '';
@@ -251,8 +269,11 @@ function render() {
   }
 
   const banner = FLYER_VIEWER[currentPlatform] ? flyerBannerHTML(currentPlatform) : '';
+  const cards = items.map((it, i) =>
+    it.category === '전단지' ? flyerCardHTML(it, i) : cardHTML(it, q, i)
+  ).join('');
   document.getElementById('content').innerHTML =
-    banner + `<div class="grid">${items.map((it,i)=>cardHTML(it, q, i)).join('')}</div>`;
+    banner + `<div class="grid">${cards}</div>`;
 }
 
 async function loadPlatform(platform) {
