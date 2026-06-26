@@ -2,6 +2,7 @@ import os
 import re
 import httpx
 from typing import List, Optional
+from urllib.parse import urlparse, parse_qs, unquote
 from models import Promotion
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
@@ -66,6 +67,32 @@ async def search(query: str, display: int = 20) -> List[dict]:
         pass
     return []
 
+def _resolve_link(raw_link: str, product_id: str) -> Optional[str]:
+    """Return the best accessible URL for a product.
+
+    Naver Shopping API wraps all links in link.shopping.naver.com tracking URLs
+    that force login. We try to extract the real destination URL from query params,
+    and fall back to the catalog page which is publicly accessible.
+    """
+    if not raw_link or "link.shopping.naver.com" in raw_link:
+        if raw_link:
+            # Try to extract actual destination from tracking URL query params
+            try:
+                parsed = urlparse(raw_link)
+                params = parse_qs(parsed.query)
+                for key in ("url", "destination", "dest", "target"):
+                    if key in params:
+                        dest = unquote(params[key][0])
+                        if dest.startswith("http"):
+                            return dest
+            except Exception:
+                pass
+        # Fall back to Naver catalog page (publicly accessible, no login)
+        if product_id:
+            return f"https://search.shopping.naver.com/catalog/{product_id}"
+        return None
+    return raw_link
+
 def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, force_name: Optional[str] = None) -> Optional[Promotion]:
     title = clean_title(item.get("title", ""))
     image = item.get("image", "")
@@ -79,14 +106,9 @@ def to_promotion(item: dict, idx: int, force_platform: Optional[str] = None, for
         return None
 
     raw_link = item.get("link", "")
-    # link.shopping.naver.com 은 로그인을 요구하는 추적 URL → 카탈로그 페이지로 대체
-    if not raw_link or "link.shopping.naver.com" in raw_link:
-        if product_id:
-            link = f"https://search.shopping.naver.com/catalog/{product_id}"
-        else:
-            return None
-    else:
-        link = raw_link
+    link = _resolve_link(raw_link, product_id)
+    if not link:
+        return None
 
     platform, platform_name = (force_platform, force_name) if force_platform else detect_platform(mall)
     discount_rate = int((hprice - lprice) / hprice * 100) if hprice > lprice else 0
