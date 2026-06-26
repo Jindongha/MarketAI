@@ -15,7 +15,6 @@ CACHE_TTL = 600  # 10분
 PLATFORM_MAP = {
     "kurly": kurly.fetch,
     "lotte": lotte.fetch,
-    "coupang": coupang.fetch,
     "ssg": ssg.fetch,
     "emart": emart.fetch,
     "traders": traders.fetch,
@@ -28,6 +27,7 @@ PLATFORM_MAP = {
     "naver": naver.fetch,
     "emart_flyer": emart_flyer.fetch,
     "lotte_flyer": lotte_flyer.fetch,
+    # "coupang": 봇 차단으로 서버 크롤링 불가 — 파트너스 API 키 발급 시 재추가
 }
 
 

@@ -45,7 +45,6 @@ async def debug_naver():
 async def debug_pipeline():
     """각 플랫폼별로 원본 데이터 → 필터 단계별 결과를 보여줌 (실시간 진단용)."""
     from scrapers import naver as naver_scraper
-    from scrapers import coupang as coupang_scraper
     from scrapers import emart_flyer, lotte_flyer
 
     report: dict = {}
@@ -76,16 +75,6 @@ async def debug_pipeline():
         }
     else:
         report["naver"] = {"status": "NAVER_KEY_NOT_SET"}
-
-    # ---- 쿠팡: 직접 크롤링 HTTP 상태/개수 ----
-    try:
-        coupang_items = await coupang_scraper.fetch()
-        report["coupang"] = {
-            "count": len(coupang_items),
-            "sample": [{"title": p.title, "price": p.sale_price, "url": p.url[:80]} for p in coupang_items[:5]],
-        }
-    except Exception as e:
-        report["coupang"] = {"error": f"{type(e).__name__}: {e}"}
 
     # ---- 전단지 ----
     try:
@@ -131,27 +120,6 @@ async def debug_flyer():
         except Exception as e:
             out[name] = {"error": f"{type(e).__name__}: {e}"}
     return out
-
-
-@app.get("/api/debug/coupang")
-async def debug_coupang():
-    """쿠팡 직접 크롤링이 차단되는지 HTTP 상태를 확인."""
-    import httpx
-    from scrapers.coupang import HEADERS, SEARCH_QUERIES
-    url = f"https://www.coupang.com/np/search?q={SEARCH_QUERIES[0].replace(' ', '+')}&channel=user"
-    try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
-            r = await c.get(url, headers=HEADERS)
-            body = r.text
-            return {
-                "http_status": r.status_code,
-                "body_length": len(body),
-                "has_product_list": "search-product" in body,
-                "looks_blocked": any(w in body for w in ["Access Denied", "차단", "비정상", "robot", "captcha"]),
-                "body_head": body[:300],
-            }
-    except Exception as e:
-        return {"error": f"{type(e).__name__}: {e}"}
 
 
 @app.get("/")
